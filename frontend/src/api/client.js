@@ -51,6 +51,7 @@ export const api = {
 
   // Users
   listUsers: (role) => request("/api/v1/users", { params: { role } }),
+  createUser: (data) => request("/api/v1/users", { method: "POST", body: data }),
 
   // Customers
   listCustomers: (search) => request("/api/v1/customers", { params: { search } }),

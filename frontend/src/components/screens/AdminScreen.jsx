@@ -51,10 +51,66 @@ function BranchForm({ branch, onSave, onCancel }) {
   );
 }
 
+function UserForm({ onSave, onCancel }) {
+  const { branches } = useData();
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("loan_officer");
+  const [branchId, setBranchId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const save = async () => {
+    if (!name || !phone || !password) return;
+    setSaving(true); setError("");
+    try {
+      await onSave({ name, phone, password, role, branchId: branchId || null });
+    } catch (err) {
+      setError(err.message || "Could not create user");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <h3 style={{ fontSize: 13.5, fontWeight: 600 }}>New user</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }} className="form-grid-2">
+        <div><label className="field-label">Full name</label><input className="input" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. K. Silva" /></div>
+        <div><label className="field-label">Phone (used to log in)</label><input className="input" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="0771234567" /></div>
+        <div><label className="field-label">Password</label><input type="password" className="input" value={password} onChange={e=>setPassword(e.target.value)} placeholder="At least 8 characters" /></div>
+        <div>
+          <label className="field-label">Role</label>
+          <select className="input" value={role} onChange={e=>setRole(e.target.value)}>
+            <option value="loan_officer">Loan Officer</option>
+            <option value="accountant">Accountant</option>
+            <option value="recovery_officer">Recovery Officer</option>
+            <option value="admin">Administrator</option>
+          </select>
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label className="field-label">Branch (optional here — Loan Officers become a branch's route owner from the Branches tab instead)</label>
+          <select className="input" value={branchId} onChange={e=>setBranchId(e.target.value)}>
+            <option value="">— Unassigned —</option>
+            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        </div>
+      </div>
+      {error && <div className="text-rust" style={{ fontSize: 12.5 }}>{error}</div>}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={save} disabled={saving} className="btn btn-primary btn-sm">{saving ? "Creating…" : "Create user"}</button>
+        <button onClick={onCancel} className="btn btn-outline btn-sm">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminScreen() {
-  const { branches, users, loanProducts, officerBalances, createBranch, updateBranch, issueFloat } = useData();
+  const { branches, users, loanProducts, officerBalances, createBranch, createUser, updateBranch, issueFloat } = useData();
   const [tab, setTab] = useState("branches");
   const [editingId, setEditingId] = useState(null);
+  const [addingUser, setAddingUser] = useState(false);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -95,13 +151,23 @@ export default function AdminScreen() {
       )}
 
       {tab === "users" && (
-        <div className="list">
-          {users.map(u=>(
-            <div key={u.id} className="list-item">
-              <div><div style={{ fontWeight: 600, fontSize: 13.5 }}>{u.name}</div><div className="muted-light" style={{ fontSize: 11 }}>{ROLE_LABEL[u.role]} · {u.routeBranch?.name || "—"}</div></div>
-              <ChevronRight size={16} className="muted-light" />
-            </div>
-          ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {addingUser && (
+            <UserForm
+              onSave={async (data) => { await createUser(data); setAddingUser(false); }}
+              onCancel={()=>setAddingUser(false)}
+            />
+          )}
+          <div className="list">
+            {users.map(u=>(
+              <div key={u.id} className="list-item">
+                <div><div style={{ fontWeight: 600, fontSize: 13.5 }}>{u.name}</div><div className="muted-light" style={{ fontSize: 11 }}>{ROLE_LABEL[u.role]} · {u.phone} · {u.routeBranch?.name || "—"}</div></div>
+                <ChevronRight size={16} className="muted-light" />
+              </div>
+            ))}
+            {!users.length && <div className="list-item muted-light" style={{ fontSize: 12.5 }}>No users yet.</div>}
+          </div>
+          {!addingUser && <button onClick={()=>setAddingUser(true)} className="btn btn-dark btn-sm" style={{ alignSelf: "flex-start" }}><Plus size={14}/>Add user</button>}
         </div>
       )}
 

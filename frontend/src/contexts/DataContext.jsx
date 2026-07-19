@@ -109,6 +109,7 @@ export function DataProvider({ children }) {
   }, [refreshBalances]);
 
   const createBranch = useCallback(async (data) => { const b = await api.createBranch(data); await refreshBranches(); return b; }, [refreshBranches]);
+  const createUser = useCallback(async (data) => { const u = await api.createUser(data); await refreshUsers(); return u; }, [refreshUsers]);
   const updateBranch = useCallback(async (id, data) => { const b = await api.updateBranch(id, data); await refreshBranches(); return b; }, [refreshBranches]);
 
   // Full application: create customer, create loan (pending), then
@@ -136,7 +137,7 @@ export function DataProvider({ children }) {
   const value = {
     branches, users, customers, loans, loanProducts, recentPayments, officerBalances, myBalance, dashboardSummary, loading,
     refreshAll, refreshCustomers, refreshLoans,
-    addPayment, createBranch, updateBranch, submitLoanApplication,
+    addPayment, createBranch, createUser, updateBranch, submitLoanApplication,
     approveLoan, rejectLoan, disburseLoan, depositCash, issueFloat,
   };
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
