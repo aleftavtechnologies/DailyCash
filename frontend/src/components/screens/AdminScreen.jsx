@@ -106,11 +106,48 @@ function UserForm({ onSave, onCancel }) {
   );
 }
 
+function ProductForm({ onSave, onCancel }) {
+  const [name, setName] = useState("");
+  const [termDays, setTermDays] = useState(60);
+  const [interestValue, setInterestValue] = useState(20);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const save = async () => {
+    if (!name || !termDays || !interestValue) return;
+    setSaving(true); setError("");
+    try {
+      await onSave({ name, termDays: Number(termDays), interestValue: Number(interestValue), interestType: "flat_percent" });
+    } catch (err) {
+      setError(err.message || "Could not create loan product");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <h3 style={{ fontSize: 13.5, fontWeight: 600 }}>New loan product</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }} className="form-grid-3">
+        <div><label className="field-label">Product name</label><input className="input" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Standard 60-Day" /></div>
+        <div><label className="field-label">Term (days)</label><input type="number" className="input input-mono" value={termDays} onChange={e=>setTermDays(e.target.value)} /></div>
+        <div><label className="field-label">Flat interest %</label><input type="number" className="input input-mono" value={interestValue} onChange={e=>setInterestValue(e.target.value)} /></div>
+      </div>
+      {error && <div className="text-rust" style={{ fontSize: 12.5 }}>{error}</div>}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={save} disabled={saving} className="btn btn-primary btn-sm">{saving ? "Creating…" : "Create product"}</button>
+        <button onClick={onCancel} className="btn btn-outline btn-sm">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminScreen() {
-  const { branches, users, loanProducts, officerBalances, createBranch, createUser, updateBranch, issueFloat } = useData();
+  const { branches, users, loanProducts, officerBalances, createBranch, createUser, createLoanProduct, updateBranch, issueFloat } = useData();
   const [tab, setTab] = useState("branches");
   const [editingId, setEditingId] = useState(null);
   const [addingUser, setAddingUser] = useState(false);
+  const [addingProduct, setAddingProduct] = useState(false);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -172,13 +209,23 @@ export default function AdminScreen() {
       )}
 
       {tab === "products" && (
-        <div className="list">
-          {loanProducts.map(p=>(
-            <div key={p.id} className="list-item">
-              <div><div style={{ fontWeight: 600, fontSize: 13.5 }}>{p.name}</div><div className="muted-light" style={{ fontSize: 11 }}>{p.termDays} days · {p.interestValue}% flat interest</div></div>
-              <ChevronRight size={16} className="muted-light" />
-            </div>
-          ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {addingProduct && (
+            <ProductForm
+              onSave={async (data) => { await createLoanProduct(data); setAddingProduct(false); }}
+              onCancel={()=>setAddingProduct(false)}
+            />
+          )}
+          <div className="list">
+            {loanProducts.map(p=>(
+              <div key={p.id} className="list-item">
+                <div><div style={{ fontWeight: 600, fontSize: 13.5 }}>{p.name}</div><div className="muted-light" style={{ fontSize: 11 }}>{p.termDays} days · {p.interestValue}% flat interest</div></div>
+                <ChevronRight size={16} className="muted-light" />
+              </div>
+            ))}
+            {!loanProducts.length && <div className="list-item muted-light" style={{ fontSize: 12.5 }}>No loan products yet — Loan Officers can't submit applications until you add one.</div>}
+          </div>
+          {!addingProduct && <button onClick={()=>setAddingProduct(true)} className="btn btn-dark btn-sm" style={{ alignSelf: "flex-start" }}><Plus size={14}/>Add loan product</button>}
         </div>
       )}
 
